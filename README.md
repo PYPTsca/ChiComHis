@@ -1,5 +1,28 @@
-# Vue 3 + TypeScript + Vite
+# 中国近现代史纲要刷题网站
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+基于 Vue 3 + Vite 搭建的刷题网站，题库来源于 `docs` 目录的单选题与判断题。支持顺序刷题、按题型刷题、随机抽题，并在本地记录刷题数量与错题本。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 功能
+- 按顺序刷题（全部题目）
+- 按题型刷题（单选/判断）
+- 随机抽题（可选择数量与范围）
+- 本地错题本与刷题数量统计（无需账号）
+- 简洁界面，适配手机与电脑
+
+## 使用方式
+```bash
+npm install
+npm run dev
+```
+
+## 构建
+```bash
+npm run build
+```
+
+## 题库来源
+题库文件存放在 `docs` 目录：
+- `中国近现代史纲要300单选.md`
+- `《中国近现代史纲要》客观题题库（2023版）判断题.md`
+
+项目会在运行时解析题库文件并生成结构化题目数据。
