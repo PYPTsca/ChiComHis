@@ -25,6 +25,7 @@ const lastCorrect = ref<boolean | null>(null)
 
 const answeredIds = ref<string[]>(loadIds('chicomhis:answered'))
 const wrongIds = ref<string[]>(loadIds('chicomhis:wrong'))
+const wrongCorrectCounts = ref<Record<string, number>>(loadCounts('chicomhis:wrong-correct'))
 
 const totalQuestions = computed(() => allQuestions.length)
 const answeredCount = computed(() => answeredIds.value.length)
@@ -70,6 +71,26 @@ const wrongQuestions = computed(() =>
     .filter((question): question is Question => Boolean(question)),
 )
 
+const isWrongQuestion = computed(() => {
+  const question = currentQuestion.value
+  return question ? wrongIds.value.includes(question.id) : false
+})
+const currentWrongCorrectCount = computed(() => {
+  const question = currentQuestion.value
+  if (!question) return 0
+  return wrongCorrectCounts.value[question.id] ?? 0
+})
+const showPreviouslyWrong = computed(
+  () => !submitted.value && mode.value !== 'wrong' && isWrongQuestion.value,
+)
+const showCorrectOnce = computed(
+  () =>
+    !submitted.value &&
+    mode.value === 'wrong' &&
+    isWrongQuestion.value &&
+    currentWrongCorrectCount.value === 1,
+)
+
 const canSubmit = computed(() => selectedAnswer.value !== '' && !submitted.value)
 const isLastQuestion = computed(
   () => sessionQuestions.value.length > 0 && currentIndex.value >= sessionQuestions.value.length - 1,
@@ -101,6 +122,12 @@ watch(
 watch(
   () => wrongIds.value,
   (value) => saveIds('chicomhis:wrong', value),
+  { deep: true },
+)
+
+watch(
+  () => wrongCorrectCounts.value,
+  (value) => saveCounts('chicomhis:wrong-correct', value),
   { deep: true },
 )
 
@@ -139,8 +166,27 @@ function submitAnswer() {
   if (!answeredIds.value.includes(question.id)) {
     answeredIds.value = [...answeredIds.value, question.id]
   }
-  if (!correct && !wrongIds.value.includes(question.id)) {
-    wrongIds.value = [...wrongIds.value, question.id]
+  if (!correct) {
+    if (!wrongIds.value.includes(question.id)) {
+      wrongIds.value = [...wrongIds.value, question.id]
+      if (question.id in wrongCorrectCounts.value) {
+        const { [question.id]: _, ...rest } = wrongCorrectCounts.value
+        wrongCorrectCounts.value = rest
+      }
+    }
+  } else if (wrongIds.value.includes(question.id)) {
+    const currentCount = wrongCorrectCounts.value[question.id] ?? 0
+    const nextCount = currentCount + 1
+    if (nextCount >= 2) {
+      wrongIds.value = wrongIds.value.filter((id) => id !== question.id)
+      const { [question.id]: _, ...rest } = wrongCorrectCounts.value
+      wrongCorrectCounts.value = rest
+    } else {
+      wrongCorrectCounts.value = {
+        ...wrongCorrectCounts.value,
+        [question.id]: nextCount,
+      }
+    }
   }
 }
 
@@ -198,6 +244,30 @@ function loadIds(key: string) {
 }
 
 function saveIds(key: string, value: string[]) {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+function loadCounts(key: string): Record<string, number> {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return Object.fromEntries(
+        Object.entries(parsed).filter(
+          ([, value]) => typeof value === 'number' && Number.isFinite(value) && value > 0,
+        ),
+      ) as Record<string, number>
+    }
+  } catch {
+    return {}
+  }
+  return {}
+}
+
+function saveCounts(key: string, value: Record<string, number>) {
   if (typeof localStorage === 'undefined') return
   localStorage.setItem(key, JSON.stringify(value))
 }
@@ -363,6 +433,8 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
             <span class="progress">{{ progressLabel }}</span>
             <span class="type-badge">{{ currentQuestion.type === 'single' ? '单选题' : '判断题' }}</span>
           </div>
+          <p v-if="showPreviouslyWrong" class="hint">之前答错过</p>
+          <p v-else-if="showCorrectOnce" class="hint">答对一次</p>
           <h2 class="question-title">{{ currentQuestion.text }}</h2>
 
           <div v-if="isSingleChoice(currentQuestion)" class="options">
