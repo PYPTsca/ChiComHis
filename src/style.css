@@ -253,6 +253,7 @@ input {
 }
 
 .question-actions {
+  padding: 12px;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
