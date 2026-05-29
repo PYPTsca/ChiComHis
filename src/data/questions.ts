@@ -35,6 +35,11 @@ export const questionById = Object.fromEntries(
 ) as Record<string, Question>
 
 const LETTER_A_CHARCODE = 'A'.charCodeAt(0)
+const CHAPTER_FIELD_PATTERN = `["']?chapter["']?\\s*:\\s*\\d+`
+const ENTRY_LOOKAHEAD_PATTERN = `(?=\\n\\s*\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}|$)`
+const ENTRY_PREFIX_PATTERN = `\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}`
+const ENTRY_REGEX = new RegExp(`${ENTRY_PREFIX_PATTERN}[\\s\\S]*?${ENTRY_LOOKAHEAD_PATTERN}`, 'g')
+const OPTION_PREFIX_PATTERN = /^([A-Z])[\s.．、)）]+(.+)$/
 
 interface RawQuestion {
   chapter: number
@@ -63,11 +68,7 @@ function parseQuestionBank(raw: string): Question[] {
 
 function extractEntries(raw: string) {
   const cleaned = raw.replace(/^\s*\/\/.*$/gm, '')
-  const chapterPattern = `["']?chapter["']?\\s*:\\s*\\d+`
-  const entryLookahead = `(?=\\n\\s*\\{[\\s\\S]*?${chapterPattern}|$)`
-  const entryPrefix = `\\{[\\s\\S]*?${chapterPattern}`
-  const entryRegex = new RegExp(`${entryPrefix}[\\s\\S]*?${entryLookahead}`, 'g')
-  return cleaned.match(entryRegex) ?? []
+  return cleaned.match(ENTRY_REGEX) ?? []
 }
 
 function parseRawQuestion(block: string): RawQuestion | null {
@@ -151,7 +152,7 @@ function normalizeOptions(options: string[]) {
   options.forEach((option, index) => {
     const trimmed = option.trim()
     if (!trimmed) return
-    const match = trimmed.match(/^([A-Z])[\s.．、)）]+(.+)$/)
+    const match = trimmed.match(OPTION_PREFIX_PATTERN)
     const letter = match ? match[1] : String.fromCharCode(LETTER_A_CHARCODE + index)
     const value = match ? match[2].trim() : trimmed
     if (letter && value) {

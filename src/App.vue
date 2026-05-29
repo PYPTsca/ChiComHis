@@ -313,7 +313,10 @@ function isMultiAnswerCorrect(selected: string[], answer: string[]) {
   const selectedSet = new Set(selected.map((item) => item.toUpperCase()))
   const answerSet = new Set(answer.map((item) => item.toUpperCase()))
   if (selectedSet.size !== answerSet.size) return false
-  return [...answerSet].every((item) => selectedSet.has(item))
+  for (const item of selectedSet) {
+    if (!answerSet.has(item)) return false
+  }
+  return true
 }
 
 function isSingleChoice(question: Question): question is SingleChoiceQuestion {
