@@ -6,7 +6,7 @@ import {
     questionById,
     singleChoiceQuestions,
 } from "./data/questions";
-import type { Question, SingleChoiceQuestion } from "./data/questions";
+import type { Question, SingleChoiceQuestion, JudgeQuestion } from "./data/questions";
 
 type Mode = "sequence" | "type" | "random" | "wrong";
 type TypeFilter = "all" | "single" | "multi";
@@ -79,10 +79,10 @@ const optionEntries = computed(() => {
 const correctAnswerLabel = computed(() => {
     const question = currentQuestion.value;
     if (!question) return "";
-    if (question.type === "single") {
-        return question.answer;
+    if (question.type === "single" || question.type === "judge") {
+        return question.answer as string;
     }
-    return question.answer.join("、");
+    return (question.answer as string[]).join("、");
 });
 
 const wrongQuestions = computed(() =>
@@ -188,10 +188,12 @@ function submitAnswer() {
         return;
     if (question.type === "single" && !selectedAnswer.value) return;
 
-    const correct =
-        question.type === "single"
-            ? selectedAnswer.value === question.answer
-            : isMultiAnswerCorrect(selectedMultiAnswers.value, question.answer);
+    let correct = false;
+    if (question.type === "single" || question.type === "judge") {
+        correct = selectedAnswer.value === (question.answer as string);
+    } else {
+        correct = isMultiAnswerCorrect(selectedMultiAnswers.value, question.answer as string[]);
+    }
 
     lastCorrect.value = correct;
     submitted.value = true;
@@ -333,8 +335,8 @@ function isMultiAnswerCorrect(selected: string[], answer: string[]) {
     return Array.from(selectedSet).every((item) => answerSet.has(item));
 }
 
-function isSingleChoice(question: Question): question is SingleChoiceQuestion {
-    return question.type === "single";
+function isSingleChoice(question: Question): question is SingleChoiceQuestion | JudgeQuestion {
+    return question.type === "single" || question.type === "judge";
 }
 </script>
 
@@ -501,9 +503,9 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
                     <div class="question-header">
                         <span class="progress">{{ progressLabel }}</span>
                         <span class="type-badge">{{
-                            currentQuestion.type === "single"
-                                ? "单选题"
-                                : "多选题"
+                            currentQuestion.type === "judge"
+                                ? "判断题"
+                                : (currentQuestion.type === "single" ? "单选题" : "多选题")
                         }}</span>
                     </div>
                     <p v-if="showPreviouslyWrong" class="hint">之前答错过</p>
@@ -578,10 +580,14 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
                             wrong: lastCorrect === false,
                         }"
                     >
-                        <span v-if="lastCorrect">回答正确！</span>
-                        <span v-else
-                            >回答错误，正确答案：{{ correctAnswerLabel }}</span
-                        >
+                        <div v-if="lastCorrect">
+                            <span>回答正确！</span>
+                            <p v-if="currentQuestion && currentQuestion.explanation" class="explanation">{{ currentQuestion.explanation }}</p>
+                        </div>
+                        <div v-else>
+                            <span>回答错误，正确答案：{{ correctAnswerLabel }}</span>
+                            <p v-if="currentQuestion && currentQuestion.explanation" class="explanation">{{ currentQuestion.explanation }}</p>
+                        </div>
                     </div>
 
                     <div v-if="submitted && isLastQuestion" class="finish">

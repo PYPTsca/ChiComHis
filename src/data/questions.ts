@@ -1,6 +1,8 @@
-import questionRaw from '../../docs/question.js?raw'
+// 原题库（保留以备回滚）
+// import questionRaw from '../../docs/question.js?raw'
+import questionRaw from '../../docs/question300.js?raw'
 
-export type QuestionType = 'single' | 'multi'
+export type QuestionType = 'single' | 'multi' | 'judge'
 
 export interface BaseQuestion {
   id: string
@@ -22,7 +24,12 @@ export interface MultiChoiceQuestion extends BaseQuestion {
   answer: string[]
 }
 
-export type Question = SingleChoiceQuestion | MultiChoiceQuestion
+export interface JudgeQuestion extends BaseQuestion {
+  type: 'judge'
+  answer: string
+}
+
+export type Question = SingleChoiceQuestion | MultiChoiceQuestion | JudgeQuestion
 
 // const parsedQuestions = parseQuestionBank(questionRaw)
 // export const allQuestions: Question[] = parsedQuestions
@@ -90,7 +97,7 @@ function parseRawQuestion(block: string): RawQuestion | null {
   const answer = matchAnswer(block)
   const explanation = matchString(block, 'explanation')
 
-  if (!chapter || !type || !question || options.length === 0 || answer === null) {
+  if (chapter === null || !type || !question || options.length === 0 || answer === null) {
     return null
   }
 
@@ -137,6 +144,15 @@ function normalizeQuestion(rawQuestion: RawQuestion, position: number): Question
     }
   }
 
+  if (normalizedType === 'judge') {
+    if (typeof answer !== 'string') return null
+    return {
+      ...base,
+      type: 'judge',
+      answer,
+    }
+  }
+
   if (!Array.isArray(answer)) return null
   return {
     ...base,
@@ -149,6 +165,7 @@ function normalizeType(value: string): QuestionType | null {
   const cleaned = value.replace(/\s+/g, '')
   if (cleaned.includes('单选')) return 'single'
   if (cleaned.includes('多选')) return 'multi'
+  if (cleaned.includes('判断') || cleaned.includes('判断题')) return 'judge'
   return null
 }
 
@@ -176,7 +193,7 @@ function normalizeOptions(options: string[]) {
 function normalizeAnswer(answer: string | string[], type: QuestionType) {
   const raw = Array.isArray(answer) ? answer.join('') : answer
   const letters = raw.toUpperCase().replace(/[^A-Z]/g, '').split('')
-  if (type === 'single') {
+  if (type === 'single' || type === 'judge') {
     return letters[0] ?? ''
   }
   return [...new Set(letters)]
@@ -190,30 +207,39 @@ function matchNumber(block: string, key: string) {
 
 function matchString(block: string, key: string) {
   const safeKey = escapeRegex(key)
-  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*"([^"]*?)"`, 's'))
-  return match ? match[1].trim() : ''
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, 's'))
+  return match ? unescapeString(match[1]).trim() : ''
 }
 
 function matchArray(block: string, key: string) {
   const safeKey = escapeRegex(key)
   const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*\\[(.*?)\\]`, 's'))
   if (!match) return []
-  return [...match[1].matchAll(/"([^"]*?)"/g)]
-    .map((item) => item[1].trim())
-    .filter(Boolean)
+  const items: string[] = []
+  const re = /"((?:\\.|[^"\\])*)"/g
+  for (const m of match[1].matchAll(re)) {
+    items.push(unescapeString(m[1]).trim())
+  }
+  return items.filter(Boolean)
 }
 
 function matchAnswer(block: string) {
   const arrayMatch = block.match(/["']?answer["']?\s*:\s*\[(.*?)\]/s)
   if (arrayMatch) {
-    const values = [...arrayMatch[1].matchAll(/"([^"]*?)"/g)]
-      .map((item) => item[1].trim())
-      .filter(Boolean)
+    const values: string[] = []
+    const re = /"((?:\\.|[^"\\])*)"/g
+    for (const m of arrayMatch[1].matchAll(re)) {
+      values.push(unescapeString(m[1]).trim())
+    }
     return values
   }
-  const stringMatch = block.match(/["']?answer["']?\s*:\s*"([^"]*?)"/s)
-  if (stringMatch) return stringMatch[1].trim()
+  const stringMatch = block.match(/["']?answer["']?\s*:\s*"((?:\\.|[^"\\])*)"/s)
+  if (stringMatch) return unescapeString(stringMatch[1]).trim()
   return null
+}
+
+function unescapeString(s: string) {
+  return s.replace(/\\"/g, '"').replace(/\\\\/g, '\\')
 }
 
 function escapeRegex(value: string) {
