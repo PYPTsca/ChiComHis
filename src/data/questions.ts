@@ -34,6 +34,8 @@ export const questionById = Object.fromEntries(
   allQuestions.map((question) => [question.id, question]),
 ) as Record<string, Question>
 
+const LETTER_A_CHARCODE = 'A'.charCodeAt(0)
+
 interface RawQuestion {
   chapter: number
   type: string
@@ -61,11 +63,10 @@ function parseQuestionBank(raw: string): Question[] {
 
 function extractEntries(raw: string) {
   const cleaned = raw.replace(/^\s*\/\/.*$/gm, '')
-  const chapterPattern = `[\"']?chapter[\"']?\\s*:\\s*\\d+`
-  const entryRegex = new RegExp(
-    `\\{[\\s\\S]*?${chapterPattern}[\\s\\S]*?(?=\\n\\s*\\{[\\s\\S]*?${chapterPattern}|$)`,
-    'g',
-  )
+  const chapterPattern = `["']?chapter["']?\\s*:\\s*\\d+`
+  const entryLookahead = `(?=\\n\\s*\\{[\\s\\S]*?${chapterPattern}|$)`
+  const entryPrefix = `\\{[\\s\\S]*?${chapterPattern}`
+  const entryRegex = new RegExp(`${entryPrefix}[\\s\\S]*?${entryLookahead}`, 'g')
   return cleaned.match(entryRegex) ?? []
 }
 
@@ -151,7 +152,7 @@ function normalizeOptions(options: string[]) {
     const trimmed = option.trim()
     if (!trimmed) return
     const match = trimmed.match(/^([A-Z])[\s.．、)）]+(.+)$/)
-    const letter = match ? match[1] : String.fromCharCode(65 + index)
+    const letter = match ? match[1] : String.fromCharCode(LETTER_A_CHARCODE + index)
     const value = match ? match[2].trim() : trimmed
     if (letter && value) {
       normalized[letter] = value

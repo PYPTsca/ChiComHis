@@ -310,7 +310,6 @@ function filterCounts(counts: Record<string, number>, validIds: Set<string>) {
 }
 
 function isMultiAnswerCorrect(selected: string[], answer: string[]) {
-  if (selected.length !== answer.length) return false
   const selectedSet = new Set(selected.map((item) => item.toUpperCase()))
   const answerSet = new Set(answer.map((item) => item.toUpperCase()))
   if (selectedSet.size !== answerSet.size) return false
