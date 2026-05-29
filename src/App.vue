@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import {
   allQuestions,
-  judgeQuestions,
+  multiChoiceQuestions,
   questionById,
   singleChoiceQuestions,
   type Question,
@@ -10,22 +10,27 @@ import {
 } from './data/questions'
 
 type Mode = 'sequence' | 'type' | 'random' | 'wrong'
-type TypeFilter = 'all' | 'single' | 'judge'
+type TypeFilter = 'all' | 'single' | 'multi'
 
 const mode = ref<Mode>('sequence')
 const typeFilter = ref<TypeFilter>('all')
 const randomCount = ref(10)
+const excludeAnswered = ref(false)
 
 const sessionQuestions = ref<Question[]>([])
 const sessionStarted = ref(false)
 const currentIndex = ref(0)
 const selectedAnswer = ref('')
+const selectedMultiAnswers = ref<string[]>([])
 const submitted = ref(false)
 const lastCorrect = ref<boolean | null>(null)
 
-const answeredIds = ref<string[]>(loadIds('chicomhis:answered'))
-const wrongIds = ref<string[]>(loadIds('chicomhis:wrong'))
-const wrongCorrectCounts = ref<Record<string, number>>(loadCounts('chicomhis:wrong-correct'))
+const validQuestionIds = new Set(allQuestions.map((question) => question.id))
+const answeredIds = ref<string[]>(filterIds(loadIds('chicomhis:answered'), validQuestionIds))
+const wrongIds = ref<string[]>(filterIds(loadIds('chicomhis:wrong'), validQuestionIds))
+const wrongCorrectCounts = ref<Record<string, number>>(
+  filterCounts(loadCounts('chicomhis:wrong-correct'), validQuestionIds),
+)
 
 const totalQuestions = computed(() => allQuestions.length)
 const answeredCount = computed(() => answeredIds.value.length)
@@ -35,13 +40,19 @@ const poolByFilter = computed(() => {
   if (typeFilter.value === 'single') {
     return singleChoiceQuestions
   }
-  if (typeFilter.value === 'judge') {
-    return judgeQuestions
+  if (typeFilter.value === 'multi') {
+    return multiChoiceQuestions
   }
   return allQuestions
 })
 
-const randomMax = computed(() => poolByFilter.value.length)
+const randomPool = computed(() => {
+  if (!excludeAnswered.value) return poolByFilter.value
+  const answeredSet = new Set(answeredIds.value)
+  return poolByFilter.value.filter((question) => !answeredSet.has(question.id))
+})
+
+const randomMax = computed(() => randomPool.value.length)
 
 const currentQuestion = computed(() => sessionQuestions.value[currentIndex.value])
 const progressLabel = computed(() => {
@@ -52,7 +63,7 @@ const progressLabel = computed(() => {
 
 const optionEntries = computed(() => {
   const question = currentQuestion.value
-  if (!question || question.type !== 'single') return []
+  if (!question) return []
   return Object.entries(question.options).sort((a, b) => a[0].localeCompare(b[0]))
 })
 
@@ -62,7 +73,7 @@ const correctAnswerLabel = computed(() => {
   if (question.type === 'single') {
     return question.answer
   }
-  return question.answer ? '正确' : '错误'
+  return question.answer.join('、')
 })
 
 const wrongQuestions = computed(() =>
@@ -91,7 +102,15 @@ const showCorrectOnce = computed(
     currentWrongCorrectCount.value === 1,
 )
 
-const canSubmit = computed(() => selectedAnswer.value !== '' && !submitted.value)
+const canSubmit = computed(() => {
+  if (submitted.value) return false
+  const question = currentQuestion.value
+  if (!question) return false
+  if (question.type === 'multi') {
+    return selectedMultiAnswers.value.length > 0
+  }
+  return selectedAnswer.value !== ''
+})
 const isLastQuestion = computed(
   () => sessionQuestions.value.length > 0 && currentIndex.value >= sessionQuestions.value.length - 1,
 )
@@ -140,7 +159,7 @@ function startSession() {
     pool = poolByFilter.value
   } else if (mode.value === 'random') {
     clampRandomCount()
-    pool = pickRandom(poolByFilter.value, randomCount.value)
+    pool = pickRandom(randomPool.value, randomCount.value)
   } else if (mode.value === 'wrong') {
     pool = wrongQuestions.value
   }
@@ -153,12 +172,14 @@ function startSession() {
 
 function submitAnswer() {
   const question = currentQuestion.value
-  if (!question || !selectedAnswer.value) return
+  if (!question) return
+  if (question.type === 'multi' && selectedMultiAnswers.value.length === 0) return
+  if (question.type === 'single' && !selectedAnswer.value) return
 
   const correct =
     question.type === 'single'
       ? selectedAnswer.value === question.answer
-      : (selectedAnswer.value === 'true') === question.answer
+      : isMultiAnswerCorrect(selectedMultiAnswers.value, question.answer)
 
   lastCorrect.value = correct
   submitted.value = true
@@ -202,6 +223,7 @@ function restartSession() {
 
 function resetAnswerState() {
   selectedAnswer.value = ''
+  selectedMultiAnswers.value = []
   submitted.value = false
   lastCorrect.value = null
 }
@@ -270,6 +292,28 @@ function loadCounts(key: string): Record<string, number> {
 function saveCounts(key: string, value: Record<string, number>) {
   if (typeof localStorage === 'undefined') return
   localStorage.setItem(key, JSON.stringify(value))
+}
+
+function filterIds(ids: string[], validIds: Set<string>) {
+  const seen = new Set<string>()
+  return ids.filter((id) => {
+    if (!validIds.has(id) || seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
+}
+
+function filterCounts(counts: Record<string, number>, validIds: Set<string>) {
+  return Object.fromEntries(
+    Object.entries(counts).filter(([id, value]) => validIds.has(id) && value > 0),
+  ) as Record<string, number>
+}
+
+function isMultiAnswerCorrect(selected: string[], answer: string[]) {
+  const selectedSet = new Set(selected.map((item) => item.toUpperCase()))
+  const answerSet = new Set(answer.map((item) => item.toUpperCase()))
+  if (selectedSet.size !== answerSet.size) return false
+  return Array.from(selectedSet).every((item) => answerSet.has(item))
 }
 
 function isSingleChoice(question: Question): question is SingleChoiceQuestion {
@@ -356,10 +400,10 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
               <button
                 type="button"
                 class="ghost"
-                :class="{ active: typeFilter === 'judge' }"
-                @click="typeFilter = 'judge'"
+                :class="{ active: typeFilter === 'multi' }"
+                @click="typeFilter = 'multi'"
               >
-                判断
+                多选
               </button>
             </div>
           </div>
@@ -386,10 +430,10 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
               <button
                 type="button"
                 class="ghost"
-                :class="{ active: typeFilter === 'judge' }"
-                @click="typeFilter = 'judge'"
+                :class="{ active: typeFilter === 'multi' }"
+                @click="typeFilter = 'multi'"
               >
-                判断
+                多选
               </button>
             </div>
             <label class="field">
@@ -402,6 +446,10 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
                 class="input"
               />
               <span class="hint">最多 {{ randomMax }} 题</span>
+            </label>
+            <label class="field">
+              <input v-model="excludeAnswered" type="checkbox" />
+              <span>随机时排除已刷题目</span>
             </label>
           </div>
 
@@ -431,7 +479,7 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
         <div v-else>
           <div class="question-header">
             <span class="progress">{{ progressLabel }}</span>
-            <span class="type-badge">{{ currentQuestion.type === 'single' ? '单选题' : '判断题' }}</span>
+            <span class="type-badge">{{ currentQuestion.type === 'single' ? '单选题' : '多选题' }}</span>
           </div>
           <p v-if="showPreviouslyWrong" class="hint">之前答错过</p>
           <p v-else-if="showCorrectOnce" class="hint">答对一次</p>
@@ -456,25 +504,21 @@ function isSingleChoice(question: Question): question is SingleChoiceQuestion {
             </label>
           </div>
           <div v-else class="options">
-            <label class="option" :class="{ selected: selectedAnswer === 'true' }">
+            <label
+              v-for="option in optionEntries"
+              :key="option[0]"
+              class="option"
+              :class="{ selected: selectedMultiAnswers.includes(option[0]) }"
+            >
               <input
-                v-model="selectedAnswer"
-                type="radio"
-                name="judge"
-                value="true"
+                v-model="selectedMultiAnswers"
+                type="checkbox"
+                name="multi"
+                :value="option[0]"
                 :disabled="submitted"
               />
-              <span>正确</span>
-            </label>
-            <label class="option" :class="{ selected: selectedAnswer === 'false' }">
-              <input
-                v-model="selectedAnswer"
-                type="radio"
-                name="judge"
-                value="false"
-                :disabled="submitted"
-              />
-              <span>错误</span>
+              <span class="option-label">{{ option[0] }}</span>
+              <span>{{ option[1] }}</span>
             </label>
           </div>
 

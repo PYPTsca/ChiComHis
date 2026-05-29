@@ -1,149 +1,221 @@
-import judgeRaw from '../../docs/《中国近现代史纲要》客观题题库（2023版）判断题.md?raw'
-import singleRaw from '../../docs/中国近现代史纲要300单选.md?raw'
+import questionRaw from '../../docs/question.js?raw'
 
-export type QuestionType = 'single' | 'judge'
+export type QuestionType = 'single' | 'multi'
 
-export interface SingleChoiceQuestion {
+export interface BaseQuestion {
   id: string
-  type: 'single'
+  type: QuestionType
   index: number
+  chapter: number
   text: string
   options: Record<string, string>
-  answer: 'A' | 'B' | 'C' | 'D'
+  explanation?: string
 }
 
-export interface JudgeQuestion {
-  id: string
-  type: 'judge'
-  index: number
-  text: string
-  answer: boolean
+export interface SingleChoiceQuestion extends BaseQuestion {
+  type: 'single'
+  answer: string
 }
 
-export type Question = SingleChoiceQuestion | JudgeQuestion
+export interface MultiChoiceQuestion extends BaseQuestion {
+  type: 'multi'
+  answer: string[]
+}
 
-export const judgeQuestions = parseJudge(judgeRaw)
-export const singleChoiceQuestions = parseSingleChoice(singleRaw)
-export const allQuestions: Question[] = [...singleChoiceQuestions, ...judgeQuestions]
+export type Question = SingleChoiceQuestion | MultiChoiceQuestion
+
+const parsedQuestions = parseQuestionBank(questionRaw)
+
+export const allQuestions: Question[] = parsedQuestions
+export const singleChoiceQuestions = parsedQuestions.filter(isSingleChoice)
+export const multiChoiceQuestions = parsedQuestions.filter(isMultiChoice)
 
 export const questionById = Object.fromEntries(
   allQuestions.map((question) => [question.id, question]),
 ) as Record<string, Question>
 
-function parseJudge(raw: string): JudgeQuestion[] {
-  const questions: JudgeQuestion[] = []
-  const lines = raw.split(/\r?\n/)
+const LETTER_A_CHARCODE = 'A'.charCodeAt(0)
+// Matches a chapter field like: chapter: 1 or "chapter": 1
+const CHAPTER_FIELD_PATTERN = `["']?chapter["']?\\s*:\\s*\\d+`
+// Captures from the opening brace until just before the next chapter entry.
+const ENTRY_LOOKAHEAD_PATTERN = `(?=\\n\\s*\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}|$)`
+const ENTRY_PREFIX_PATTERN = `\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}`
+const ENTRY_REGEX = new RegExp(`${ENTRY_PREFIX_PATTERN}[\\s\\S]*?${ENTRY_LOOKAHEAD_PATTERN}`, 'g')
+// Matches option labels like "A.", "A．", or "A、" followed by text.
+const OPTION_PREFIX_PATTERN = /^([A-Z])[\s.．、)）]+(.+)$/
 
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-    const match = trimmed.match(/^(\d+)\.\s*(.+?)\s*(✅|❌)\s*$/)
-    if (!match) continue
-    const index = Number(match[1])
-    const text = match[2].trim()
-    const answer = match[3] === '✅'
-    questions.push({
-      id: `judge-${index}`,
-      type: 'judge',
-      index,
-      text,
-      answer,
-    })
-  }
+interface RawQuestion {
+  chapter: number
+  type: string
+  question: string
+  options: string[]
+  answer: string | string[]
+  explanation?: string
+}
+
+function parseQuestionBank(raw: string): Question[] {
+  const entries = extractEntries(raw)
+  const questions: Question[] = []
+
+  entries.forEach((entry, position) => {
+    const rawQuestion = parseRawQuestion(entry)
+    if (!rawQuestion) return
+    const normalized = normalizeQuestion(rawQuestion, position)
+    if (normalized) {
+      questions.push(normalized)
+    }
+  })
 
   return questions
 }
 
-function parseSingleChoice(raw: string): SingleChoiceQuestion[] {
-  const questions: SingleChoiceQuestion[] = []
-  const lines = raw.split(/\r?\n/)
-  let inSection = false
-  let current:
-    | {
-        index: number
-        text: string
-        answer: 'A' | 'B' | 'C' | 'D'
-        optionLines: string[]
-      }
-    | undefined
+function extractEntries(raw: string) {
+  const cleaned = raw.replace(/^\s*\/\/.*$/gm, '')
+  return cleaned.match(ENTRY_REGEX) ?? []
+}
 
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
+function parseRawQuestion(block: string): RawQuestion | null {
+  const chapter = matchNumber(block, 'chapter')
+  const type = matchString(block, 'type')
+  const question = matchString(block, 'question')
+  const options = matchArray(block, 'options')
+  const answer = matchAnswer(block)
+  const explanation = matchString(block, 'explanation')
 
-    if (!inSection) {
-      if (/单选题/.test(trimmed)) {
-        inSection = true
-      }
-      continue
-    }
-
-    const indexMatch = trimmed.match(/^(\d+)\.\s*(.+)$/)
-    const answerMatch = trimmed.match(/[（(]([A-D])[）)]/)
-    if (indexMatch && answerMatch) {
-      if (current) {
-        const options = extractOptions(current.optionLines)
-        questions.push({
-          id: `single-${current.index}`,
-          type: 'single',
-          index: current.index,
-          text: current.text,
-          options,
-          answer: current.answer,
-        })
-      }
-      const index = Number(indexMatch[1])
-      const rawText = trimmed.replace(/^\d+\.\s*/, '')
-      const text = rawText.replace(/[（(][A-D][）)]/g, '（ ）').trim()
-      current = {
-        index,
-        text,
-        answer: answerMatch[1] as 'A' | 'B' | 'C' | 'D',
-        optionLines: [],
-      }
-      continue
-    }
-
-    if (current) {
-      current.optionLines.push(trimmed)
-    }
+  if (!chapter || !type || !question || options.length === 0 || answer === null) {
+    return null
   }
 
-  if (current) {
-    const options = extractOptions(current.optionLines)
-    questions.push({
-      id: `single-${current.index}`,
+  return {
+    chapter,
+    type,
+    question,
+    options,
+    answer,
+    explanation: explanation || undefined,
+  }
+}
+
+function normalizeQuestion(rawQuestion: RawQuestion, position: number): Question | null {
+  const normalizedType = normalizeType(rawQuestion.type)
+  if (!normalizedType) return null
+
+  const text = rawQuestion.question.trim()
+  const index = extractIndex(text, position)
+  const options = normalizeOptions(rawQuestion.options)
+  const answer = normalizeAnswer(rawQuestion.answer, normalizedType)
+  const id = `${normalizedType}-${rawQuestion.chapter}-${index}`
+
+  if (Object.keys(options).length === 0) return null
+  if (typeof answer === 'string' && !answer) return null
+  if (Array.isArray(answer) && answer.length === 0) return null
+
+  const base = {
+    id,
+    type: normalizedType,
+    index,
+    chapter: rawQuestion.chapter,
+    text,
+    options,
+    explanation: rawQuestion.explanation,
+  }
+
+  if (normalizedType === 'single') {
+    if (typeof answer !== 'string') return null
+    return {
+      ...base,
       type: 'single',
-      index: current.index,
-      text: current.text,
-      options,
-      answer: current.answer,
-    })
-  }
-
-  return questions
-}
-
-function extractOptions(lines: string[]) {
-  const options: Record<string, string> = {}
-  const merged = lines
-    .join(' ')
-    .replace(/[·•]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  const matches = [...merged.matchAll(/(?:^|\s)([A-D])\.\s*/g)]
-  if (matches.length === 0) return options
-
-  for (let i = 0; i < matches.length; i += 1) {
-    const letter = matches[i][1]
-    const start = (matches[i].index ?? 0) + matches[i][0].length
-    const end = i + 1 < matches.length ? matches[i + 1].index ?? merged.length : merged.length
-    const value = merged.slice(start, end).trim()
-    if (letter && value) {
-      options[letter] = value
+      answer,
     }
   }
 
-  return options
+  if (!Array.isArray(answer)) return null
+  return {
+    ...base,
+    type: 'multi',
+    answer,
+  }
+}
+
+function normalizeType(value: string): QuestionType | null {
+  const cleaned = value.replace(/\s+/g, '')
+  if (cleaned.includes('单选')) return 'single'
+  if (cleaned.includes('多选')) return 'multi'
+  return null
+}
+
+function extractIndex(text: string, position: number) {
+  const match = text.match(/^\s*(\d+)[.．、]/)
+  if (match) return Number(match[1])
+  return position + 1
+}
+
+function normalizeOptions(options: string[]) {
+  const normalized: Record<string, string> = {}
+  options.forEach((option, index) => {
+    const trimmed = option.trim()
+    if (!trimmed) return
+    const match = trimmed.match(OPTION_PREFIX_PATTERN)
+    const letter = match ? match[1] : String.fromCharCode(LETTER_A_CHARCODE + index)
+    const value = match ? match[2].trim() : trimmed
+    if (letter && value) {
+      normalized[letter] = value
+    }
+  })
+  return normalized
+}
+
+function normalizeAnswer(answer: string | string[], type: QuestionType) {
+  const raw = Array.isArray(answer) ? answer.join('') : answer
+  const letters = raw.toUpperCase().replace(/[^A-Z]/g, '').split('')
+  if (type === 'single') {
+    return letters[0] ?? ''
+  }
+  return [...new Set(letters)]
+}
+
+function matchNumber(block: string, key: string) {
+  const safeKey = escapeRegex(key)
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*(\\d+)`))
+  return match ? Number(match[1]) : null
+}
+
+function matchString(block: string, key: string) {
+  const safeKey = escapeRegex(key)
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*"([^"]*?)"`, 's'))
+  return match ? match[1].trim() : ''
+}
+
+function matchArray(block: string, key: string) {
+  const safeKey = escapeRegex(key)
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*\\[(.*?)\\]`, 's'))
+  if (!match) return []
+  return [...match[1].matchAll(/"([^"]*?)"/g)]
+    .map((item) => item[1].trim())
+    .filter(Boolean)
+}
+
+function matchAnswer(block: string) {
+  const arrayMatch = block.match(/["']?answer["']?\s*:\s*\[(.*?)\]/s)
+  if (arrayMatch) {
+    const values = [...arrayMatch[1].matchAll(/"([^"]*?)"/g)]
+      .map((item) => item[1].trim())
+      .filter(Boolean)
+    return values
+  }
+  const stringMatch = block.match(/["']?answer["']?\s*:\s*"([^"]*?)"/s)
+  if (stringMatch) return stringMatch[1].trim()
+  return null
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function isSingleChoice(question: Question): question is SingleChoiceQuestion {
+  return question.type === 'single'
+}
+
+function isMultiChoice(question: Question): question is MultiChoiceQuestion {
+  return question.type === 'multi'
 }
