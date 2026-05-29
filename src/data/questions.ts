@@ -35,10 +35,13 @@ export const questionById = Object.fromEntries(
 ) as Record<string, Question>
 
 const LETTER_A_CHARCODE = 'A'.charCodeAt(0)
+// Matches a chapter field like: chapter: 1 or "chapter": 1
 const CHAPTER_FIELD_PATTERN = `["']?chapter["']?\\s*:\\s*\\d+`
+// Captures from the opening brace until just before the next chapter entry.
 const ENTRY_LOOKAHEAD_PATTERN = `(?=\\n\\s*\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}|$)`
 const ENTRY_PREFIX_PATTERN = `\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}`
 const ENTRY_REGEX = new RegExp(`${ENTRY_PREFIX_PATTERN}[\\s\\S]*?${ENTRY_LOOKAHEAD_PATTERN}`, 'g')
+// Matches option labels like "A.", "A．", or "A、" followed by text.
 const OPTION_PREFIX_PATTERN = /^([A-Z])[\s.．、)）]+(.+)$/
 
 interface RawQuestion {
@@ -172,17 +175,20 @@ function normalizeAnswer(answer: string | string[], type: QuestionType) {
 }
 
 function matchNumber(block: string, key: string) {
-  const match = block.match(new RegExp(`["']?${key}["']?\\s*:\\s*(\\d+)`))
+  const safeKey = escapeRegex(key)
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*(\\d+)`))
   return match ? Number(match[1]) : null
 }
 
 function matchString(block: string, key: string) {
-  const match = block.match(new RegExp(`["']?${key}["']?\\s*:\\s*"([^"]*?)"`, 's'))
+  const safeKey = escapeRegex(key)
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*"([^"]*?)"`, 's'))
   return match ? match[1].trim() : ''
 }
 
 function matchArray(block: string, key: string) {
-  const match = block.match(new RegExp(`["']?${key}["']?\\s*:\\s*\\[(.*?)\\]`, 's'))
+  const safeKey = escapeRegex(key)
+  const match = block.match(new RegExp(`["']?${safeKey}["']?\\s*:\\s*\\[(.*?)\\]`, 's'))
   if (!match) return []
   return [...match[1].matchAll(/"([^"]*?)"/g)]
     .map((item) => item[1].trim())
@@ -200,6 +206,10 @@ function matchAnswer(block: string) {
   const stringMatch = block.match(/["']?answer["']?\s*:\s*"([^"]*?)"/s)
   if (stringMatch) return stringMatch[1].trim()
   return null
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function isSingleChoice(question: Question): question is SingleChoiceQuestion {
