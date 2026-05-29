@@ -61,7 +61,11 @@ function parseQuestionBank(raw: string): Question[] {
 
 function extractEntries(raw: string) {
   const cleaned = raw.replace(/^\s*\/\/.*$/gm, '')
-  const entryRegex = /\{[\s\S]*?["']?chapter["']?\s*:\s*\d+[\s\S]*?(?=\n\s*\{[\s\S]*?["']?chapter["']?\s*:\s*\d+|$)/g
+  const chapterPattern = `[\"']?chapter[\"']?\\s*:\\s*\\d+`
+  const entryRegex = new RegExp(
+    `\\{[\\s\\S]*?${chapterPattern}[\\s\\S]*?(?=\\n\\s*\\{[\\s\\S]*?${chapterPattern}|$)`,
+    'g',
+  )
   return cleaned.match(entryRegex) ?? []
 }
 
@@ -162,13 +166,7 @@ function normalizeAnswer(answer: string | string[], type: QuestionType) {
   if (type === 'single') {
     return letters[0] ?? ''
   }
-  const unique: string[] = []
-  letters.forEach((letter) => {
-    if (!unique.includes(letter)) {
-      unique.push(letter)
-    }
-  })
-  return unique
+  return [...new Set(letters)]
 }
 
 function matchNumber(block: string, key: string) {
