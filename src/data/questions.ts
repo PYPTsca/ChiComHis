@@ -24,15 +24,14 @@ export interface MultiChoiceQuestion extends BaseQuestion {
 
 export type Question = SingleChoiceQuestion | MultiChoiceQuestion
 
-const parsedQuestions = parseQuestionBank(questionRaw)
+// const parsedQuestions = parseQuestionBank(questionRaw)
+// export const allQuestions: Question[] = parsedQuestions
+// export const singleChoiceQuestions = parsedQuestions.filter(isSingleChoice)
+// export const multiChoiceQuestions = parsedQuestions.filter(isMultiChoice)
 
-export const allQuestions: Question[] = parsedQuestions
-export const singleChoiceQuestions = parsedQuestions.filter(isSingleChoice)
-export const multiChoiceQuestions = parsedQuestions.filter(isMultiChoice)
-
-export const questionById = Object.fromEntries(
-  allQuestions.map((question) => [question.id, question]),
-) as Record<string, Question>
+//export const questionById = Object.fromEntries(
+//  allQuestions.map((question) => [question.id, question]),
+//) as Record<string, Question>
 
 const LETTER_A_CHARCODE = 'A'.charCodeAt(0)
 // Matches a chapter field like: chapter: 1 or "chapter": 1
@@ -43,6 +42,15 @@ const ENTRY_PREFIX_PATTERN = `\\{[\\s\\S]*?${CHAPTER_FIELD_PATTERN}`
 const ENTRY_REGEX = new RegExp(`${ENTRY_PREFIX_PATTERN}[\\s\\S]*?${ENTRY_LOOKAHEAD_PATTERN}`, 'g')
 // Matches option labels like "A.", "A．", or "A、" followed by text.
 const OPTION_PREFIX_PATTERN = /^([A-Z])[\s.．、)）]+(.+)$/
+
+const parsedQuestions = parseQuestionBank(questionRaw);
+export const allQuestions: Question[] = parsedQuestions;
+export const singleChoiceQuestions = parsedQuestions.filter(isSingleChoice);
+export const multiChoiceQuestions = parsedQuestions.filter(isMultiChoice);
+
+export const questionById = Object.fromEntries(
+    allQuestions.map((question) => [question.id, question]),
+) as Record<string, Question>;
 
 interface RawQuestion {
   chapter: number
