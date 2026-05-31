@@ -54,6 +54,12 @@
             align-items: center;
         }
 
+        .mode-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
         .chapter-select {
             flex: 1;
             min-width: 250px;
@@ -84,14 +90,46 @@
             background-color: #2980b9;
         }
 
+        .mode-btn {
+            background: #eef2f7;
+            color: #2c3e50;
+            border: 1px solid #d8e0ea;
+        }
+
+        .mode-btn:hover {
+            background: #e4ebf3;
+        }
+
+        .mode-btn.active {
+            background: #2c3e50;
+            color: #fff;
+            border-color: #2c3e50;
+        }
+
+        .start-btn {
+            background: #2f80ed;
+        }
+
+        .start-btn:hover {
+            background: #2563c7;
+        }
+
         .stats {
             display: flex;
-            gap: 30px;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-left: auto;
+            justify-content: flex-end;
         }
 
         .stat-item {
             text-align: center;
+            min-width: 108px;
+            flex: 1 1 108px;
+            padding: 12px 10px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
         }
 
         .stat-number {
@@ -226,17 +264,29 @@
             color: #7f8c8d;
         }
 
+        .wrong-reminder {
+            margin-top: 10px;
+            display: none;
+            color: #d35400;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
         @media (max-width: 768px) {
             .control-panel {
                 flex-direction: column;
                 align-items: stretch;
             }
 
+            .mode-buttons {
+                width: 100%;
+            }
+
             .stats {
                 width: 100%;
-                justify-content: space-around;
                 margin-left: 0;
                 margin-top: 10px;
+                justify-content: stretch;
             }
 
             .question-content {
@@ -266,121 +316,22 @@
             border-left: 4px solid #3498db;
             font-size: 16px;
         }
-
-        #userInfo {
-            font-weight: bold;
-            color: #27ae60;
-            margin-right: 20px;
-        }
-
-        #loginModal,
-        #customQuizModal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .login-box,
-        .quiz-box {
-            background: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            width: 320px;
-        }
-
-        .login-box h3,
-        .quiz-box h3 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-
-        .login-box input,
-        .quiz-box select,
-        .quiz-box input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-
-        .login-box button,
-        .quiz-box button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-
-        #loginBtn,
-        #startCustomQuizBtn {
-            background: #3498db;
-        }
-
-        #closeCustomQuizBtn {
-            background: #95a5a6;
-        }
     </style>
 </head>
 
 <body>
-    <!-- 登录弹窗 -->
-    <div id="loginModal">
-        <div class="login-box">
-            <h3>用户登录</h3>
-            <input type="text" id="username" placeholder="请输入用户名（随意填，自动注册）">
-            <button id="loginBtn">确认登录</button>
-            <p style="text-align:center;font-size:12px;color:#999;margin-top:10px;">首次输入用户名自动创建账号，数据自动保存</p>
-        </div>
-    </div>
-    <!-- 自定义自测弹窗 -->
-    <div id="customQuizModal" style="display: none;">
-        <div class="quiz-box">
-            <h3>自定义随机自测</h3>
-            <select id="customChapter">
-                <option value="all">全部章节</option>
-                <option value="1">第一章 进入近代后中华民族的磨难与抗争</option>
-                <option value="2">第二章 不同社会力量对国家出路的早期探索</option>
-                <option value="3">第三章 辛亥革命与君主专制制度的终结</option>
-                <option value="4">第四章 中国共产党成立和中国革命新局面</option>
-                <option value="5">第五章 中国革命的新道路</option>
-                <option value="6">第六章 中华民族的抗日战争</option>
-                <option value="7">第七章 为建立新中国而奋斗</option>
-                <option value="8">第八章 中华人民共和国的成立与中国社会主义建设道路的探索</option>
-
-                <option value="10">第十章 中国特色社会主义进入新时代</option>
-                <option value="11">雨课堂题目（上）</option>
-            </select>
-            <input type="number" id="customQuestionCount" placeholder="题数（5-50题）" min="5" max="50" value="10">
-            <button id="startCustomQuizBtn">开始自测</button>
-            <button id="closeCustomQuizBtn">取消</button>
-        </div>
-    </div>
     <div class="container">
         <header>
             <h1>中国近现代史纲要 - 题库刷题系统</h1>
             <div class="subtitle">章节练习 · 答案解析 · 进度跟踪</div>
         </header>
         <div class="control-panel">
-            <!-- 用户信息 -->
-            <div id="userInfo" style="display: none;"></div>
-            <!-- 新增功能按钮 -->
-            <button id="wrongBookBtn">错题本</button>
-            <button id="highFreqBtn">高频考题</button>
-            <button id="customQuizBtn">自定义自测</button>
+            <div class="mode-buttons">
+                <button id="sequenceModeBtn" class="mode-btn active" type="button">顺序刷题</button>
+                <button id="highFreqBtn" class="mode-btn" type="button">高频考题</button>
+                <button id="randomModeBtn" class="mode-btn" type="button">随机刷题</button>
+                <button id="wrongBookBtn" class="mode-btn" type="button">错题本</button>
+            </div>
 
             <div class="chapter-select">
                 <select id="chapterSelect">
@@ -398,8 +349,8 @@
                     <option value="11">雨课堂题目（上）</option>
                 </select>
             </div>
+            <button id="startBtn" class="start-btn" type="button">开始刷题</button>
             <button id="resetBtn">重置进度</button>
-            <button id="randomBtn">随机刷题</button>
             <div class="stats">
                 <div class="stat-item">
                     <div class="stat-number" id="totalCount">0</div>
@@ -421,18 +372,10 @@
                     <div class="stat-number" id="totalProgress">0%</div>
                     <div class="stat-label">总完成度</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="currentQuizTime">00:00</div>
-                    <div class="stat-label">本次时长</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="totalQuizTime">00:00</div>
-                    <div class="stat-label">累计时长</div>
-                </div>
             </div>
         </div>
         <div id="loading" class="loading">
-            请选择章节开始刷题...
+            请选择模式、章节后点击开始刷题...
         </div>
         <div id="questionContainer" style="display: none;">
             <div class="question-card">
@@ -440,6 +383,7 @@
                     <div class="question-number">第 <span id="currentQuestionNum">1</span> 题</div>
                     <div class="question-type" id="questionType">单选题</div>
                 </div>
+                <div class="wrong-reminder" id="wrongReminder">之前做错过</div>
                 <div class="question-content" id="questionText"></div>
                 <div class="options" id="optionsContainer"></div>
                 <button id="checkAnswerBtn">提交答案</button>
@@ -456,16 +400,119 @@
     </div>
     <script>
         // ===== 全局变量 =====
-        let currentUser = "";
+        let currentUser = "default";
         const USER_KEY = "quizSystemUsers";
-        let currentQuizStartTime = 0;
-        let currentQuizTimer = null;
-        let totalQuizSeconds = 0;
+        let currentMode = "sequence";
         let currentChapter = "all";
+        let currentQuizKey = "chapter:all";
         let filteredQuestions = [];
         let currentQuestionIndex = 0;
         let userAnswers = {};
         let correctCount = 0;
+
+        function getUsers() {
+            return JSON.parse(localStorage.getItem(USER_KEY)) || {};
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem(USER_KEY, JSON.stringify(users));
+        }
+
+        function ensureCurrentUser() {
+            const users = getUsers();
+            if (!users[currentUser]) {
+                users[currentUser] = {
+                    totalDone: 0,
+                    totalCorrect: 0,
+                    chapterProgress: {},
+                    wrongQuestions: [],
+                    wrongQuestionStreaks: {},
+                    highFrequencyQuestions: [1, 3, 5, 7, 9, 12, 15, 18, 20, 23],
+                    chapterAnswers: {}
+                };
+                saveUsers(users);
+            }
+            return users[currentUser];
+        }
+
+        function getQuestionIndex(question) {
+            return questionBank.findIndex(q => q.chapter === question.chapter && q.question === question.question);
+        }
+
+        function setActiveMode(mode) {
+            currentMode = mode;
+            const modeButtons = [
+                [document.getElementById("sequenceModeBtn"), "sequence"],
+                [document.getElementById("highFreqBtn"), "highFreq"],
+                [document.getElementById("randomModeBtn"), "random"],
+                [document.getElementById("wrongBookBtn"), "wrongBook"]
+            ];
+            modeButtons.forEach(([button, buttonMode]) => {
+                if (button) {
+                    button.classList.toggle("active", buttonMode === mode);
+                }
+            });
+        }
+
+        function updateCurrentQuizKey() {
+            if (currentMode === "sequence") {
+                currentQuizKey = `chapter:${currentChapter}`;
+            } else if (currentMode === "random") {
+                currentQuizKey = `random:${currentChapter}`;
+            } else {
+                currentQuizKey = `mode:${currentMode}`;
+            }
+        }
+
+        function shuffleQuestions(items) {
+            return [...items].sort(() => Math.random() - 0.5);
+        }
+
+        function getQuizQuestionsForMode() {
+            if (currentMode === "sequence") {
+                return currentChapter === "all"
+                    ? [...questionBank]
+                    : questionBank.filter(question => question.chapter === parseInt(currentChapter));
+            }
+
+            if (currentMode === "highFreq") {
+                const userData = ensureCurrentUser();
+                return questionBank.filter((_, index) => userData.highFrequencyQuestions.includes(index));
+            }
+
+            if (currentMode === "wrongBook") {
+                const userData = ensureCurrentUser();
+                return questionBank.filter((_, index) => userData.wrongQuestions.includes(index));
+            }
+
+            const sourceQuestions = currentChapter === "all"
+                ? [...questionBank]
+                : questionBank.filter(question => question.chapter === parseInt(currentChapter));
+            return shuffleQuestions(sourceQuestions);
+        }
+
+        function showQuizQuestions(questions, emptyMessage) {
+            filteredQuestions = questions;
+            currentQuestionIndex = 0;
+            userAnswers = loadUserAnswers();
+            correctCount = calcCorrectCount();
+            if (filteredQuestions.length === 0) {
+                loadingEl.textContent = emptyMessage;
+                loadingEl.style.display = "block";
+                questionContainer.style.display = "none";
+            } else {
+                renderCurrentQuestion();
+                questionContainer.style.display = "block";
+                loadingEl.style.display = "none";
+            }
+            updateStats();
+        }
+
+        function startCurrentQuiz() {
+            currentChapter = chapterSelect.value;
+            updateCurrentQuizKey();
+            showQuizQuestions(getQuizQuestionsForMode(), "暂无可刷题目");
+        }
         // ===== 题库数据（请在此处填入你的题目）=====
         const questionBank = [
             {
@@ -5366,12 +5413,17 @@
         ];
         // ===== DOM元素 =====
         const chapterSelect = document.getElementById("chapterSelect");
+        const sequenceModeBtn = document.getElementById("sequenceModeBtn");
+        const highFreqBtn = document.getElementById("highFreqBtn");
+        const randomModeBtn = document.getElementById("randomModeBtn");
+        const wrongBookBtn = document.getElementById("wrongBookBtn");
+        const startBtn = document.getElementById("startBtn");
         const resetBtn = document.getElementById("resetBtn");
-        const randomBtn = document.getElementById("randomBtn");
         const loadingEl = document.getElementById("loading");
         const questionContainer = document.getElementById("questionContainer");
         const currentQuestionNumEl = document.getElementById("currentQuestionNum");
         const questionTypeEl = document.getElementById("questionType");
+        const wrongReminderEl = document.getElementById("wrongReminder");
         const questionTextEl = document.getElementById("questionText");
         const optionsContainerEl = document.getElementById("optionsContainer");
         const checkAnswerBtn = document.getElementById("checkAnswerBtn");
@@ -5409,190 +5461,108 @@
             return count;
         }
 
-        // ===== 1. 登录功能 =====
-        function initLogin() {
-            const loginModal = document.getElementById("loginModal");
-            const loginBtn = document.getElementById("loginBtn");
-            const usernameInput = document.getElementById("username");
-            const userInfo = document.getElementById("userInfo");
-            const savedUser = localStorage.getItem("currentQuizUser");
-            if (savedUser) {
-                currentUser = savedUser;
-                loginModal.style.display = "none";
-                userInfo.textContent = `当前用户：${currentUser}`;
-                userInfo.style.display = "inline-block";
-                loadUserProgress();
-            }
-            loginBtn.addEventListener("click", () => {
-                const username = usernameInput.value.trim();
-                if (!username) { alert("请输入用户名！"); return; }
-                currentUser = username;
-                localStorage.setItem("currentQuizUser", currentUser);
-                loginModal.style.display = "none";
-                userInfo.textContent = `当前用户：${currentUser}`;
-                userInfo.style.display = "inline-block";
-                initUserProgress();
-                loadUserProgress();
-                filterQuestions(currentChapter);
-                updateStats();
-            });
-        }
-
-        // 初始化用户数据（新增chapterAnswers字段）
         function initUserProgress() {
-            const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-            if (!users[currentUser]) {
-                users[currentUser] = {
-                    totalDone: 0, totalCorrect: 0,
-                    chapterProgress: {}, wrongQuestions: [],
-                    totalTime: 0, highFrequencyQuestions: [1, 3, 5, 7, 9, 12, 15, 18, 20, 23],
-                    chapterAnswers: {} // 新增：存储各章节答题记录
-                };
-                localStorage.setItem(USER_KEY, JSON.stringify(users));
-            }
+            ensureCurrentUser();
         }
 
-        // 加载用户进度
         function loadUserProgress() {
-            const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-            const userData = users[currentUser] || initUserProgress();
-            correctCount = userData.totalCorrect;
-            totalQuizSeconds = userData.totalTime;
-            document.getElementById("totalQuizTime").textContent = formatTime(totalQuizSeconds);
+            const userData = ensureCurrentUser();
+            correctCount = userData.totalCorrect || 0;
         }
 
-        // ===== 2. 错题本功能（已修复：答对移出错题本）=====
-        function initWrongBook() {
-            const wrongBookBtn = document.getElementById("wrongBookBtn");
-            wrongBookBtn.addEventListener("click", () => {
-                if (!currentUser) { alert("请先登录！"); return; }
-                const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                const wrongIds = users[currentUser].wrongQuestions;
-                filteredQuestions = questionBank.filter((_, index) => wrongIds.includes(index));
-                if (filteredQuestions.length === 0) {
-                    loadingEl.textContent = "✅ 暂无错题，继续加油！";
-                    loadingEl.style.display = "block";
-                    questionContainer.style.display = "none";
-                } else {
-                    currentQuestionIndex = 0;
-                    userAnswers = loadUserAnswers(); // 加载错题本答题记录
-                    correctCount = calcCorrectCount();
-                    renderCurrentQuestion();
-                    questionContainer.style.display = "block";
-                    loadingEl.style.display = "none";
-                    startQuizTimer();
+        // ===== 保存/加载答题记录 =====
+        function saveUserAnswers() {
+            if (!currentUser) return;
+            const users = getUsers();
+            const userData = users[currentUser] || ensureCurrentUser();
+            userData.chapterAnswers = userData.chapterAnswers || {};
+            userData.chapterAnswers[currentQuizKey] = userAnswers;
+            users[currentUser] = userData;
+            saveUsers(users);
+        }
+
+        function loadUserAnswers() {
+            if (!currentUser) return {};
+            const userData = ensureCurrentUser();
+            return userData.chapterAnswers?.[currentQuizKey] || {};
+        }
+
+        function calcCorrectCount() {
+            let count = 0;
+            Object.keys(userAnswers).forEach(key => {
+                if (userAnswers[`${key}_correct`]) {
+                    count++;
                 }
-                updateStats();
             });
+            return count;
         }
 
-        // ===== 3. 高频考题功能 =====
-        function initHighFreqQuestions() {
-            const highFreqBtn = document.getElementById("highFreqBtn");
-            highFreqBtn.addEventListener("click", () => {
-                if (!currentUser) { alert("请先登录！"); return; }
-                const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                const highFreqIds = users[currentUser].highFrequencyQuestions;
-                filteredQuestions = questionBank.filter((_, index) => highFreqIds.includes(index));
-                if (filteredQuestions.length === 0) {
-                    loadingEl.textContent = "暂无高频考题";
-                    loadingEl.style.display = "block";
-                    questionContainer.style.display = "none";
-                } else {
-                    currentQuestionIndex = 0;
-                    userAnswers = loadUserAnswers(); // 加载答题记录
-                    correctCount = calcCorrectCount();
-                    renderCurrentQuestion();
-                    questionContainer.style.display = "block";
-                    loadingEl.style.display = "none";
-                    startQuizTimer();
-                }
+        function beginQuiz(questions, emptyMessage, restoreAnswers) {
+            filteredQuestions = questions;
+            currentQuestionIndex = 0;
+            userAnswers = restoreAnswers ? loadUserAnswers() : {};
+            correctCount = restoreAnswers ? calcCorrectCount() : 0;
+            if (filteredQuestions.length === 0) {
+                loadingEl.textContent = emptyMessage;
+                loadingEl.style.display = "block";
+                questionContainer.style.display = "none";
                 updateStats();
-            });
-        }
-
-        // ===== 4. 自定义自测功能 =====
-        function initCustomQuiz() {
-            const modal = document.getElementById("customQuizModal");
-            const btn = document.getElementById("customQuizBtn");
-            const startBtn = document.getElementById("startCustomQuizBtn");
-            const closeBtn = document.getElementById("closeCustomQuizBtn");
-            const chapterSel = document.getElementById("customChapter");
-            const countInput = document.getElementById("customQuestionCount");
-            btn.addEventListener("click", () => modal.style.display = "flex");
-            closeBtn.addEventListener("click", () => modal.style.display = "none");
-            startBtn.addEventListener("click", () => {
-                const chapter = chapterSel.value;
-                const count = parseInt(countInput.value);
-                if (count < 5 || count > 50) { alert("题数请选择5-50题！"); return; }
-                let quizQuestions = chapter === "all" ? [...questionBank] : questionBank.filter(q => q.chapter === parseInt(chapter));
-                quizQuestions.sort(() => Math.random() - 0.5);
-                filteredQuestions = quizQuestions.slice(0, count);
-                if (filteredQuestions.length === 0) {
-                    loadingEl.textContent = "该章节题目不足！";
-                    loadingEl.style.display = "block";
-                    questionContainer.style.display = "none";
-                } else {
-                    currentQuestionIndex = 0;
-                    userAnswers = {};
-                    correctCount = 0;
-                    renderCurrentQuestion();
-                    questionContainer.style.display = "block";
-                    loadingEl.style.display = "none";
-                    startQuizTimer();
-                }
-                modal.style.display = "none";
-                updateStats();
-            });
-        }
-
-        // ===== 5. 计时功能 =====
-        function formatTime(seconds) {
-            const min = Math.floor(seconds / 60).toString().padStart(2, "0");
-            const sec = (seconds % 60).toString().padStart(2, "0");
-            return `${min}:${sec}`;
-        }
-
-        function startQuizTimer() {
-            if (currentQuizTimer) clearInterval(currentQuizTimer);
-            currentQuizStartTime = Date.now();
-            currentQuizTimer = setInterval(() => {
-                const sec = Math.floor((Date.now() - currentQuizStartTime) / 1000);
-                document.getElementById("currentQuizTime").textContent = formatTime(sec);
-            }, 1000);
-        }
-
-        function stopQuizTimer() {
-            if (currentQuizTimer) {
-                clearInterval(currentQuizTimer);
-                const sec = Math.floor((Date.now() - currentQuizStartTime) / 1000);
-                totalQuizSeconds += sec;
-                if (currentUser) {
-                    const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                    users[currentUser].totalTime = totalQuizSeconds;
-                    localStorage.setItem(USER_KEY, JSON.stringify(users));
-                }
-                document.getElementById("totalQuizTime").textContent = formatTime(totalQuizSeconds);
-                currentQuizTimer = null;
+                return;
             }
+            renderCurrentQuestion();
+            questionContainer.style.display = "block";
+            loadingEl.style.display = "none";
+            updateStats();
         }
 
-        // ===== 6. 统计更新功能（修复总进度计算）=====
+        function startSequenceQuiz() {
+            currentMode = "sequence";
+            setActiveMode("sequence");
+            currentChapter = chapterSelect.value;
+            updateCurrentQuizKey();
+            const questions = currentChapter === "all"
+                ? [...questionBank]
+                : questionBank.filter(question => question.chapter === parseInt(currentChapter));
+            beginQuiz(questions, "该章节暂无题目，请选择其他章节...", true);
+        }
+
+        function startHighFreqQuiz() {
+            currentMode = "highFreq";
+            setActiveMode("highFreq");
+            updateCurrentQuizKey();
+            const userData = ensureCurrentUser();
+            const questions = questionBank.filter((_, index) => userData.highFrequencyQuestions.includes(index));
+            beginQuiz(questions, "暂无高频考题", false);
+        }
+
+        function startRandomQuiz() {
+            currentMode = "random";
+            setActiveMode("random");
+            currentChapter = chapterSelect.value;
+            updateCurrentQuizKey();
+            const sourceQuestions = currentChapter === "all"
+                ? [...questionBank]
+                : questionBank.filter(question => question.chapter === parseInt(currentChapter));
+            beginQuiz(shuffleQuestions(sourceQuestions), "暂无可随机刷题目", false);
+        }
+
+        function startWrongBookQuiz() {
+            currentMode = "wrongBook";
+            setActiveMode("wrongBook");
+            updateCurrentQuizKey();
+            const userData = ensureCurrentUser();
+            const questions = questionBank.filter((_, index) => userData.wrongQuestions.includes(index));
+            beginQuiz(questions, "✅ 暂无错题，继续加油！", false);
+        }
+
         function updateStats() {
             const totalCount = filteredQuestions.length;
             const doneCount = Object.keys(userAnswers).filter(key => !key.includes("_correct")).length;
             const totalSystemQuestions = questionBank.length;
-
-            // 修正：总完成度 = 所有章节已答题数 / 题库总题数
-            let globalDoneCount = doneCount;
-            if (currentUser) {
-                const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                const userData = users[currentUser];
-                // 累计所有章节的已答题数
-                globalDoneCount = Object.values(userData.chapterProgress).reduce((sum, item) => sum + item.done, 0);
-            }
-
             const chapterProgress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+            const userData = ensureCurrentUser();
+            const globalDoneCount = Object.values(userData.chapterProgress).reduce((sum, item) => sum + (item.done || 0), 0);
             const totalProgress = totalSystemQuestions > 0 ? Math.round((globalDoneCount / totalSystemQuestions) * 100) : 0;
 
             document.getElementById("totalCount").textContent = totalCount;
@@ -5601,74 +5571,67 @@
             document.getElementById("chapterProgress").textContent = `${chapterProgress}%`;
             document.getElementById("totalProgress").textContent = `${totalProgress}%`;
 
-            if (currentUser) {
-                const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                const userData = users[currentUser];
+            if (currentMode === "sequence") {
+                userData.chapterProgress[currentChapter] = { done: doneCount, correct: correctCount, total: totalCount };
                 userData.totalDone = globalDoneCount;
                 userData.totalCorrect = correctCount;
-                userData.chapterProgress[currentChapter] = { done: doneCount, correct: correctCount, total: totalCount };
-                userData.totalTime = totalQuizSeconds;
-                localStorage.setItem(USER_KEY, JSON.stringify(users));
+                userData.chapterAnswers = userData.chapterAnswers || {};
+                userData.chapterAnswers[currentQuizKey] = userAnswers;
+                const users = getUsers();
+                users[currentUser] = userData;
+                saveUsers(users);
             }
         }
 
-        // ===== 核心功能 =====
         function init() {
-            initLogin();
-            initWrongBook();
-            initCustomQuiz();
-            initHighFreqQuestions();
+            initUserProgress();
+            loadUserProgress();
+            setActiveMode("sequence");
+            loadingEl.textContent = "请选择模式、章节后点击开始刷题...";
+
+            sequenceModeBtn.addEventListener("click", () => {
+                setActiveMode("sequence");
+                loadingEl.textContent = "请选择章节后点击开始刷题...";
+            });
+            highFreqBtn.addEventListener("click", () => setActiveMode("highFreq"));
+            randomModeBtn.addEventListener("click", () => setActiveMode("random"));
+            wrongBookBtn.addEventListener("click", () => setActiveMode("wrongBook"));
+
+            startBtn.addEventListener("click", () => {
+                if (currentMode === "sequence") {
+                    startSequenceQuiz();
+                } else if (currentMode === "highFreq") {
+                    startHighFreqQuiz();
+                } else if (currentMode === "random") {
+                    startRandomQuiz();
+                } else {
+                    startWrongBookQuiz();
+                }
+            });
+
             chapterSelect.addEventListener("change", handleChapterChange);
             resetBtn.addEventListener("click", handleReset);
-            randomBtn.addEventListener("click", handleRandom);
             checkAnswerBtn.addEventListener("click", handleCheckAnswer);
             prevBtn.addEventListener("click", handlePrevQuestion);
             nextBtn.addEventListener("click", handleNextQuestion);
-            filterQuestions("all");
+
             updateStats();
 
-            // 新增：页面关闭/刷新时保存答题记录
             window.addEventListener("beforeunload", () => {
                 saveUserAnswers();
-                if (currentUser && currentQuizTimer) {
-                    const sec = Math.floor((Date.now() - currentQuizStartTime) / 1000);
-                    totalQuizSeconds += sec;
-                    const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                    users[currentUser].totalTime = totalQuizSeconds;
-                    localStorage.setItem(USER_KEY, JSON.stringify(users));
-                }
             });
         }
 
-        function filterQuestions(chapter) {
-            currentChapter = chapter;
-            if (chapter === "all") {
-                filteredQuestions = [...questionBank];
-            } else {
-                filteredQuestions = questionBank.filter(q => q.chapter === parseInt(chapter));
-            }
-            currentQuestionIndex = 0;
-            userAnswers = loadUserAnswers(); // 加载历史答题记录
-            correctCount = calcCorrectCount(); // 计算正确数
-            if (filteredQuestions.length > 0) {
-                renderCurrentQuestion();
-                questionContainer.style.display = "block";
-                loadingEl.style.display = "none";
-            } else {
-                questionContainer.style.display = "none";
-                loadingEl.style.display = "block";
-                loadingEl.textContent = "该章节暂无题目，请选择其他章节...";
-            }
-            updateStats();
-        }
-
         function renderCurrentQuestion() {
-            if (!currentQuizTimer) startQuizTimer();
             if (filteredQuestions.length === 0) return;
             const question = filteredQuestions[currentQuestionIndex];
+            const questionIndex = getQuestionIndex(question);
+            const userData = ensureCurrentUser();
+
             currentQuestionNumEl.textContent = currentQuestionIndex + 1;
             questionTypeEl.textContent = question.type;
             questionTextEl.textContent = question.question;
+            wrongReminderEl.style.display = questionIndex >= 0 && userData.wrongQuestions.includes(questionIndex) ? "block" : "none";
             optionsContainerEl.innerHTML = "";
             question.options.forEach(option => {
                 const optionEl = document.createElement("div");
@@ -5693,7 +5656,6 @@
             nextBtn.classList.toggle("disabled", currentQuestionIndex === filteredQuestions.length - 1);
         }
 
-        // 提交答案（修复错题本逻辑）
         function handleCheckAnswer() {
             const question = filteredQuestions[currentQuestionIndex];
             const selectedOptions = [];
@@ -5703,26 +5665,37 @@
             const userAnswer = selectedOptions.join("");
             userAnswers[currentQuestionIndex] = userAnswer;
             const isCorrect = userAnswer === question.answer;
+            const questionIndex = getQuestionIndex(question);
+            const users = getUsers();
+            const userData = users[currentUser] || ensureCurrentUser();
+            userData.wrongQuestions = userData.wrongQuestions || [];
+            userData.wrongQuestionStreaks = userData.wrongQuestionStreaks || {};
 
             if (isCorrect && !userAnswers[`${currentQuestionIndex}_correct`]) {
                 correctCount++;
                 userAnswers[`${currentQuestionIndex}_correct`] = true;
             }
 
-            // 核心修复：错题本双向逻辑
-            if (currentUser) {
-                const questionIndex = questionBank.findIndex(q => q.chapter === question.chapter && q.question === question.question);
-                const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                const wrongList = users[currentUser].wrongQuestions;
-                if (isCorrect && wrongList.includes(questionIndex)) {
-                    // 答对且在错题本中，移出错题本
-                    users[currentUser].wrongQuestions = wrongList.filter(id => id !== questionIndex);
-                    localStorage.setItem(USER_KEY, JSON.stringify(users));
-                } else if (!isCorrect && !wrongList.includes(questionIndex)) {
-                    // 答错且不在错题本中，添加错题本
-                    wrongList.push(questionIndex);
-                    localStorage.setItem(USER_KEY, JSON.stringify(users));
+            if (questionIndex >= 0) {
+                if (isCorrect) {
+                    if (userData.wrongQuestions.includes(questionIndex)) {
+                        const nextStreak = (userData.wrongQuestionStreaks[questionIndex] || 0) + 1;
+                        userData.wrongQuestionStreaks[questionIndex] = nextStreak;
+                        if (nextStreak >= 2) {
+                            userData.wrongQuestions = userData.wrongQuestions.filter(id => id !== questionIndex);
+                            delete userData.wrongQuestionStreaks[questionIndex];
+                        }
+                    } else {
+                        delete userData.wrongQuestionStreaks[questionIndex];
+                    }
+                } else {
+                    if (!userData.wrongQuestions.includes(questionIndex)) {
+                        userData.wrongQuestions.push(questionIndex);
+                    }
+                    userData.wrongQuestionStreaks[questionIndex] = 0;
                 }
+                users[currentUser] = userData;
+                saveUsers(users);
             }
 
             document.querySelectorAll(".option").forEach(el => {
@@ -5738,84 +5711,52 @@
             answerExplanationEl.style.display = "block";
             checkAnswerBtn.textContent = isCorrect ? "回答正确" : "回答错误";
             checkAnswerBtn.disabled = true;
+            wrongReminderEl.style.display = questionIndex >= 0 && userData.wrongQuestions.includes(questionIndex) ? "block" : "none";
 
-            saveUserAnswers(); // 保存答题记录
+            saveUserAnswers();
             updateStats();
-            if (currentQuestionIndex === filteredQuestions.length - 1) {
-                stopQuizTimer();
-            }
         }
 
-        // 上一题（新增保存逻辑）
         function handlePrevQuestion() {
             if (currentQuestionIndex > 0) {
-                saveUserAnswers(); // 切换前保存当前答题记录
-                if (currentQuizTimer) {
-                    const sec = Math.floor((Date.now() - currentQuizStartTime) / 1000);
-                    totalQuizSeconds += sec;
-                    if (currentUser) {
-                        const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                        users[currentUser].totalTime = totalQuizSeconds;
-                        localStorage.setItem(USER_KEY, JSON.stringify(users));
-                    }
-                    document.getElementById("totalQuizTime").textContent = formatTime(totalQuizSeconds);
-                    currentQuizStartTime = Date.now();
-                }
+                saveUserAnswers();
                 currentQuestionIndex--;
                 renderCurrentQuestion();
             }
         }
 
-        // 下一题（新增保存逻辑）
         function handleNextQuestion() {
             if (currentQuestionIndex < filteredQuestions.length - 1) {
-                saveUserAnswers(); // 切换前保存当前答题记录
-                if (currentQuizTimer) {
-                    const sec = Math.floor((Date.now() - currentQuizStartTime) / 1000);
-                    totalQuizSeconds += sec;
-                    if (currentUser) {
-                        const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                        users[currentUser].totalTime = totalQuizSeconds;
-                        localStorage.setItem(USER_KEY, JSON.stringify(users));
-                    }
-                    document.getElementById("totalQuizTime").textContent = formatTime(totalQuizSeconds);
-                    currentQuizStartTime = Date.now();
-                }
+                saveUserAnswers();
                 currentQuestionIndex++;
                 renderCurrentQuestion();
             }
         }
 
         function handleChapterChange() {
-            saveUserAnswers(); // 切换章节前保存当前答题记录
-            filterQuestions(chapterSelect.value);
-        }
-
-        function handleReset() {
-            if (confirm("确定要重置当前章节的答题进度吗？")) {
-                if (currentUser) {
-                    const users = JSON.parse(localStorage.getItem(USER_KEY)) || {};
-                    const userData = users[currentUser];
-                    userData.chapterProgress[currentChapter] = { done: 0, correct: 0, total: filteredQuestions.length };
-                    userData.chapterAnswers[currentChapter] = {}; // 重置章节答题记录
-                    userData.totalTime = 0; // 重置累计时长
-                    totalQuizSeconds = 0;
-                    document.getElementById("totalQuizTime").textContent = formatTime(totalQuizSeconds);
-                    localStorage.setItem(USER_KEY, JSON.stringify(users));
-                }
-                filterQuestions(currentChapter);
+            currentChapter = chapterSelect.value;
+            if (currentMode === "sequence") {
+                updateCurrentQuizKey();
+                loadingEl.textContent = "请选择模式、章节后点击开始刷题...";
             }
         }
 
-        function handleRandom() {
-            saveUserAnswers(); // 随机前保存答题记录
-            filteredQuestions.sort(() => Math.random() - 0.5);
-            currentQuestionIndex = 0;
-            userAnswers = {};
-            correctCount = 0;
-            startQuizTimer();
-            renderCurrentQuestion();
-            updateStats();
+        function handleReset() {
+            if (!confirm("确定要重置当前章节的答题进度吗？")) {
+                return;
+            }
+            const users = getUsers();
+            const userData = users[currentUser] || ensureCurrentUser();
+            userData.chapterProgress[currentChapter] = { done: 0, correct: 0, total: 0 };
+            userData.chapterAnswers[`chapter:${currentChapter}`] = {};
+            userData.totalDone = Object.values(userData.chapterProgress).reduce((sum, item) => sum + (item.done || 0), 0);
+            users[currentUser] = userData;
+            saveUsers(users);
+            if (currentMode === "sequence") {
+                startSequenceQuiz();
+            } else {
+                updateStats();
+            }
         }
 
         // 启动系统
