@@ -21,6 +21,6 @@ npm run build
 ```
 
 ## 题库来源
-题库文件存放在 `docs/question.js`。
+题库文件存放在 `docs/question300.js`。
 
 项目会在运行时解析题库文件并生成结构化题目数据。
